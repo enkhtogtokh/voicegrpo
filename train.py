@@ -19,24 +19,91 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # --- Shared Helper Functions ---
 def sample_actions(logits, num_samples):
+    """
+    Samples a specified number of actions based on a probability distribution derived from logits.
+
+    Args:
+        logits (torch.Tensor): The input logits from which to derive the probability distribution.
+        num_samples (int): The number of actions to sample from the distribution.
+
+    Returns:
+        tuple: A tuple containing:
+            - actions (torch.Tensor): A tensor of sampled actions.
+            - probs (torch.Tensor): The softmax probabilities corresponding to the input logits.
+    """
+
     probs = F.softmax(logits, dim=-1)
     actions = torch.multinomial(probs, num_samples, replacement=True)
     return actions, probs
 
 def compute_rewards(actions, labels):
+    """
+    Computes binary rewards from sampled actions and their corresponding labels.
+
+    Args:
+        actions (torch.Tensor): A tensor of shape (batch_size, num_samples) containing sampled actions.
+        labels (torch.Tensor): A tensor of shape (batch_size) containing the corresponding labels.
+
+    Returns:
+        torch.Tensor: A tensor of shape (batch_size, num_samples) containing the binary rewards.
+    """
     labels_exp = labels.unsqueeze(1).expand_as(actions)
     return (actions == labels_exp).float()
 
 def compute_group_advantages(rewards, std_eps=1e-8):
+    """
+    Computes group relative advantages from rewards.
+
+    Given a tensor of rewards, computes the group relative advantages by subtracting the
+    group mean and dividing by the group standard deviation. A small epsilon value is
+    added to the standard deviation to prevent division by zero.
+
+    Args:
+        rewards (torch.Tensor): A tensor of shape (batch_size, num_samples) containing rewards.
+        std_eps (float, optional): A small value added to the standard deviation to prevent division by zero.
+            Defaults to 1e-8.
+
+    Returns:
+        torch.Tensor: A tensor of shape (batch_size, num_samples) containing the group relative advantages.
+    """
     mean_r = rewards.mean(dim=1, keepdim=True)
     std_r = rewards.std(dim=1, keepdim=True) + std_eps
     return (rewards - mean_r) / std_r
 
 def compute_kl(old_probs, current_probs):
+    """
+    Computes the KL divergence between the old and current policy distributions.
+
+    Args:
+        old_probs (torch.Tensor): A tensor of shape (batch_size, num_actions) containing the old policy probabilities.
+        current_probs (torch.Tensor): A tensor of shape (batch_size, num_actions) containing the current policy probabilities.
+
+    Returns:
+        float: The mean KL divergence between the old and current policy distributions.
+    """
     kl = (old_probs * (old_probs.log() - current_probs.log())).sum(dim=1)
     return kl.mean()
 
 def train_ppo_model(model_class, epochs=200, clip_epsilon=0.2, entropy_coef=0.01, **model_kwargs):
+    """
+    Trains a model using the Proximal Policy Optimization (PPO) algorithm.
+
+    This function trains a given model class using the PPO algorithm, which
+    involves taking snapshots of the model, computing logits and probabilities
+    for actions, and optimizing based on a surrogate loss that incorporates
+    policy and entropy losses.
+
+    Args:
+        model_class (type): The class of the model to be trained.
+        epochs (int, optional): Number of training epochs. Defaults to 200.
+        clip_epsilon (float, optional): Clipping parameter for the PPO objective. Defaults to 0.2.
+        entropy_coef (float, optional): Coefficient for the entropy term. Defaults to 0.01.
+        **model_kwargs: Additional keyword arguments to initialize the model.
+
+    Returns:
+        model: The trained model.
+    """
+
     model = model_class(**model_kwargs).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
     
@@ -107,6 +174,20 @@ def train_ppo_model(model_class, epochs=200, clip_epsilon=0.2, entropy_coef=0.01
 
 # --- GRPO Training (Generic for any model) ---
 def train_grpo_model(model_class, epochs=200, group_size=20, clip_epsilon=0.2, kl_coef=0.01, **model_kwargs):
+    """
+    Train a model using the Generalized Reward Policy Optimization (GRPO) algorithm.
+
+    Args:
+        model_class: A class implementing the model architecture to be trained.
+        epochs: The number of epochs to train.
+        group_size: The size of the groups used in the GRPO algorithm.
+        clip_epsilon: The clipping value used for the policy ratio.
+        kl_coef: The coefficient of the KL divergence term in the loss.
+        **model_kwargs: Additional keyword arguments to be passed to the model class.
+
+    Returns:
+        The trained model.
+    """
     model = model_class(**model_kwargs).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
     
