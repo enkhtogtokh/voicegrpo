@@ -3,6 +3,10 @@
 ## Overview
 VoiceGRPO: Modern MoE Transformers with Group Relative Policy Optimization GRPO for AI Voice Health Care Applications on Voice Pathology Detection
 
+### Dataset
+Dataset download url: https://zenodo.org/records/14974650.
+After you download, please drop in data/ folder
+
 ### Project Structure
 The project structure is as follows:
 
