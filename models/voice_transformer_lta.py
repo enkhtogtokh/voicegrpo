@@ -1,6 +1,16 @@
 import torch.nn as nn
+
 class LatentVoiceTransformer(nn.Module):
     def __init__(self, input_dim=6, num_classes=2, latent_dim=32, transformer_dim=64, depth=3, heads=4):
+        """
+        Args:
+            input_dim (int): dimension of input data
+            num_classes (int): number of classes
+            latent_dim (int): dimension of latent space
+            transformer_dim (int): dimension of transformer
+            depth (int): number of transformer layers
+            heads (int): number of attention heads
+        """
         super().__init__()
         # Encoder to a latent representation
         self.encoder = nn.Sequential(
@@ -20,6 +30,13 @@ class LatentVoiceTransformer(nn.Module):
         )
         
     def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): input data of shape (batch, input_dim)
+
+        Returns:
+            torch.Tensor: predicted probabilities of shape (batch, num_classes)
+        """
         latent = self.encoder(x)  # (batch, latent_dim)
         transformer_input = self.latent_to_transformer(latent)  # (batch, transformer_dim)
         transformer_input = transformer_input.unsqueeze(1)  # (batch, 1, transformer_dim)
