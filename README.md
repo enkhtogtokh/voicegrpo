@@ -1,4 +1,6 @@
-# VoiceGRPO
+# VoiceGRPO: Modern MoE Transformers with Group Relative Policy Optimization GRPO for AI Voice Health Care Applications on Voice Pathology Detection
+Enkhtogtokh Togootogtokh, Christian Klasen
+Link: https://arxiv.org/abs/2503.03797
 
 ## Overview
 VoiceGRPO: Modern MoE Transformers with Group Relative Policy Optimization GRPO for AI Voice Health Care Applications on Voice Pathology Detection
